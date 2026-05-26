@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Balance – Quản lý thời gian học tập cho sinh viên</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        .tab-content {
+            transition: all 0.3s ease-in-out;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            header, nav, footer, button, form, #motivation-banner, #focus-toggle-btn {
+                display: none !important;
+            }
+            #report-view {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .tab-content {
+                display: none !important;
+            }
+            #tab-bao-cao, #report-view {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <div id="toast-container" class="fixed top-4 right-4 z-50 max-w-sm w-full space-y-2 pointer-events-none"></div>
+
+    <header class="sticky top-0 z-40 bg-white/95 border-b border-slate-200 shadow-sm backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-tr from-blue-600 to-indigo-500 p-2.5 rounded-xl text-white shadow-md shadow-blue-200">
+                        <i data-lucide="brain" class="w-6 h-6 animate-pulse"></i>
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                            Study Balance
+                        </span>
+                        <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Học tập & Cân bằng sống</p>
+                    </div>
+                </div>
+
+                <nav class="hidden md:flex space-x-1 lg:space-x-2">
+                    <button onclick="switchTab('trang-chu')" id="nav-trang-chu" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 bg-blue-50 text-blue-600 shadow-sm">
+                        <i data-lucide="compass" class="w-4 h-4"></i> Trang chủ
+                    </button>
+                    <button onclick="switchTab('muc-tieu')" id="nav-muc-tieu" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-600 hover:bg-slate-100">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> Mục tiêu
+                    </button>
+                    <button onclick="switchTab('thoi-gian-bieu')" id="nav-thoi-gian-bieu" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-600 hover:bg-slate-100">
+                        <i data-lucide="calendar" class="w-4 h-4"></i> Thời gian biểu
+                    </button>
+                    <button onclick="switchTab('thoi-quen')" id="nav-thoi-quen" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-600 hover:bg-slate-100">
+                        <i data-lucide="flame" class="w-4 h-4"></i> Thói quen
+                    </button>
+                    <button onclick="switchTab('bao-cao')" id="nav-bao-cao" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-600 hover:bg-slate-100">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> Báo cáo
+                    </button>
+                </nav>
+
+                <div class="flex items-center gap-3">
+                    <button id="focus-toggle-btn" onclick="toggleFocusMode()" class="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm border bg-white text-slate-700 border-slate-200 hover:bg-slate-50 transition-all">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" id="focus-dot"></span>
+                        <span id="focus-btn-text">Chế độ tập trung</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="motivation-banner" class="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white py-3 px-4 shadow-inner">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-2 text-xs sm:text-sm font-medium">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300 shrink-0 animate-spin"></i>
+                <span id="motivation-quote">"Học tập hết mình, nghỉ ngơi thông minh là chìa khóa của sự cân bằng bền vững."</span>
+            </div>
+            <div id="current-date" class="text-xs text-blue-200 font-semibold shrink-0"></div>
+        </div>
+    </div>
+
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+
+        <section id="tab-trang-chu" class="tab-content space-y-8">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                <div class="absolute right-0 bottom-0 top-0 w-1/3 bg-gradient-to-l from-blue-50/50 to-transparent pointer-events-none rounded-r-3xl"></div>
+                <div class="space-y-3 z-10">
+                    <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold tracking-wide uppercase">Tư duy cân bằng</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Chào ngày mới năng lượng! 🚀</h2>
+                    <p class="text-slate-500 text-sm max-w-xl">
+                        Kỷ luật là cầu nối giữa ước mơ và hiện thực. Hãy theo dõi tỉ lệ phân bổ thời gian hôm nay để vừa đạt hiệu suất tối đa vừa đảm bảo sức khỏe tinh thần.
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center gap-4 shrink-0 z-10 w-full md:w-auto">
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-center gap-3 w-full sm:w-auto">
+                        <i data-lucide="flame" class="w-8 h-8 text-orange-500 animate-bounce"></i>
+                        <div>
+                          <p class="text-xs text-slate-500 font-medium">Chuỗi ngày (Streak)</p>
+                          <p id="dashboard-streak" class="text-lg font-black text-slate-900">0 ngày liên tiếp</p>
+                        </div>
+                    </div>
+                    <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex items-center gap-3 w-full sm:w-auto">
+                        <i data-lucide="award" class="w-8 h-8 text-indigo-500"></i>
+                        <div>
+                          <p class="text-xs text-slate-500 font-medium">Huy hiệu mở khóa</p>
+                          <p id="dashboard-badges" class="text-lg font-black text-slate-900">0 / 4</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+                            <i data-lucide="clock" class="w-5 h-5 text-blue-600"></i> Quỹ thời gian thực tế ngày
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-6">Mục tiêu cân bằng: 50% Học tập - 20% Nghỉ ngơi - 30% Giải trí.</p>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs font-bold mb-1.5">
+                                    <span class="text-blue-600 flex items-center gap-1">📘 Học tập tập trung</span>
+                                    <span id="study-ratio-text">0% (0p)</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                                    <div id="study-bar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-bold mb-1.5">
+                                    <span class="text-green-600 flex items-center gap-1">☘️ Nghỉ ngơi hồi sức</span>
+                                    <span id="rest-ratio-text">0% (0p)</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                                    <div id="rest-bar" class="h-full bg-green-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-bold mb-1.5">
+                                    <span class="text-amber-600 flex items-center gap-1">🎮 Giải trí thể thao</span>
+                                    <span id="relax-ratio-text">0% (0p)</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                                    <div id="relax-bar" class="h-full bg-amber-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-4 border-t border-slate-100">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">Trình giả lập điều khiển thời gian:</p>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <button onclick="modifyTime('hocTap', 30)" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg transition">+30p Học</button>
+                            <button onclick="modifyTime('nghiNgoi', 15)" class="px-2 py-1 bg-green-50 hover:bg-green-100 text-green-600 text-[10px] font-bold rounded-lg transition">+15p Nghỉ</button>
+                            <button onclick="modifyTime('giaiTri', 30)" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-600 text-[10px] font-bold rounded-lg transition">+30p Chơi</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500"></i> Cảnh báo mất cân bằng
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-4">Phân tích sự phân bổ thời gian sinh hoạt của bạn.</p>
+                        
+                        <div id="balance-alert-box" class="p-4 rounded-xl border text-xs font-semibold leading-relaxed space-y-2"></div>
+                    </div>
+                    <div class="space-y-2 mt-4">
+                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Thông tin sức khỏe:</h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Mỗi 90 phút học tập cường độ cao cần kèm theo tối thiểu 15 phút nghỉ ngơi thư giãn mắt và đứng dậy vận động để cơ thể được điều tiết tốt nhất.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between items-center text-center">
+                    <div class="w-full">
+                        <h3 class="text-lg font-bold text-slate-900 mb-1 flex items-center justify-center gap-2">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-indigo-600"></i> Chỉ số tự giác cá nhân
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-6">Hệ thống tổng hợp từ mức độ kỷ luật và hoàn thành thói quen.</p>
+                        
+                        <div class="relative inline-flex items-center justify-center mb-4">
+                            <div class="w-32 h-32 rounded-full border-4 border-indigo-100 flex flex-col items-center justify-center bg-indigo-50/50">
+                                <span id="discipline-score" class="text-4xl font-extrabold text-indigo-600">50</span>
+                                <span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">/ 100 Điểm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-50 p-3 rounded-xl">
+                        <p id="discipline-assessment" class="text-xs text-slate-600 font-semibold">Tốt! Hãy tiếp tục duy trì thói quen học tập khoa học.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Mục tiêu SMART khẩn cấp</h3>
+                        <p class="text-xs text-slate-500 mt-1">Các dự án và môn học trọng điểm cần ưu tiên giải quyết.</p>
+                    </div>
+                    <button onclick="switchTab('muc-tieu')" class="text-blue-600 hover:text-blue-700 font-bold text-xs flex items-center gap-1 transition">
+                        Chi tiết <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="hot-goals-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            </div>
+        </section>
+
+        <section id="tab-muc-tieu" class="tab-content hidden space-y-8">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Thiết lập mục tiêu chuẩn SMART</h2>
+                    <p class="text-slate-500 text-sm mt-1">Đánh bại sự trì hoãn bằng cách đặt mục tiêu thông minh và thực hiện từng bước nhỏ hàng ngày.</p>
+                </div>
+                <div class="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold border border-blue-100">
+                    <i data-lucide="info" class="w-4 h-4"></i>
+                    <span>S: Cụ thể | M: Đo lường | A: Khả thi | R: Thực tế | T: Thời hạn rõ ràng</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
+                    <h3 class="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-5 h-5 text-blue-600"></i> Thiết lập mục tiêu mới
+                    </h3>
+                    <form id="goal-form" onsubmit="createGoal(event)" class="space-y-4">
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">Tên mục tiêu lớn *</label>
+                          <input id="g-title" type="text" placeholder="VD: Ôn thi cuối kỳ Giải Tích 1" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none" required>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">S - Chi tiết cụ thể *</label>
+                          <textarea id="g-specific" rows="2" placeholder="Bạn muốn hoàn thành chính xác nội dung gì?" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none" required></textarea>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">M - Đo lường được</label>
+                          <input id="g-measurable" type="text" placeholder="VD: Đạt điểm A, giải 20 đề thi thử" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none">
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">A - Khả thi thực hiện</label>
+                          <input id="g-achievable" type="text" placeholder="VD: Dành 1 tiếng tự học vào buổi tối" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none">
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">R - Sự liên quan</label>
+                          <input id="g-relevant" type="text" placeholder="VD: Để nâng GPA học kỳ lên xuất sắc" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none">
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">T - Thời hạn hoàn thành *</label>
+                          <input id="g-timebound" type="date" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none" required>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all">
+                            Kích Hoạt Kế Hoạch
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 space-y-4" id="goals-list-container"></div>
+            </div>
+        </section>
+
+        <section id="tab-thoi-gian-bieu" class="tab-content hidden space-y-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Xây dựng thời gian biểu cân bằng</h2>
+                    <p class="text-slate-500 text-sm mt-1">Kiến tạo thời khóa biểu học tập khoa học, phân chia màu trực quan cho từng hoạt động.</p>
+                </div>
+                <button onclick="suggestSchedule()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md hover:from-blue-700 hover:to-indigo-700 transition flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-4 h-4 animate-spin"></i>
+                    Đề xuất thời gian biểu vàng tự động
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
+                    <h3 class="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-5 h-5 text-blue-600"></i> Thêm hoạt động mới
+                    </h3>
+                    <form id="schedule-form" onsubmit="addScheduleEvent(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Chọn thứ trong tuần</label>
+                            <select id="s-day" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none">
+                                <option value="Thứ Hai">Thứ Hai</option>
+                                <option value="Thứ Ba">Thứ Ba</option>
+                                <option value="Thứ Tư">Thứ Tư</option>
+                                <option value="Thứ Năm">Thứ Năm</option>
+                                <option value="Thứ Sáu">Thứ Sáu</option>
+                                <option value="Thứ Bảy">Thứ Bảy</option>
+                                <option value="Chủ Nhật">Chủ Nhật</option>
+                                <option value="Hàng ngày">Hàng ngày</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Tên hoạt động *</label>
+                            <input id="s-title" type="text" placeholder="VD: Nghiên cứu Thư viện, Ôn bài..." class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Giờ bắt đầu</label>
+                                <input id="s-start" type="time" value="08:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Giờ kết thúc</label>
+                                <input id="s-end" type="time" value="09:00" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Nhóm hoạt động</label>
+                            <select id="s-type" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none">
+                                <option value="hoc-tap">Học tập (Màu Xanh Dương)</option>
+                                <option value="nghi-ngoi">Nghỉ ngơi (Màu Xanh Lá)</option>
+                                <option value="giai-tri">Giải trí (Màu Cam)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow transition">
+                            Xếp vào Lịch trình
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-3 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <h3 class="text-base font-bold text-slate-900 mb-6 flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-blue-600"></i> Lịch hoạt động chi tiết hàng tuần
+                    </h3>
+                    <div id="weekly-schedule-container" class="space-y-6"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-thoi-quen" class="tab-content hidden space-y-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Rèn luyện kỷ luật qua thói quen tốt</h2>
+                    <p class="text-slate-500 text-sm mt-1">Duy trì việc điểm danh thói quen đều đặn để xây dựng bản lĩnh tự giác.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
+                    <h3 class="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="plus" class="w-5 h-5 text-blue-600"></i> Thêm thói quen mới
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-4">Các hoạt động nhỏ lặp lại hằng ngày tạo nên thói quen bền bỉ.</p>
+                    <form id="habit-form" onsubmit="createHabit(event)" class="space-y-4">
+                        <input id="h-name" type="text" placeholder="VD: Đọc tài liệu, Tập thể dục..." class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs focus:outline-none" required>
+                        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition">
+                            Bắt đầu theo dõi
+                        </button>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <h3 class="text-base font-bold text-slate-900 mb-4">Bảng check-in kỷ luật hôm nay</h3>
+                    <div id="habits-list-container" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
+                    <i data-lucide="award" class="w-5 h-5 text-indigo-600"></i> Huy chương & Thành tựu rèn luyện
+                </h3>
+                <p class="text-xs text-slate-500 mb-6">Phần thưởng ảo giúp tạo động lực rèn luyện kỷ luật bản thân.</p>
+                <div id="badges-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            </div>
+        </section>
+
+        <section id="tab-bao-cao" class="tab-content hidden space-y-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Thống kê hiệu suất & Báo cáo PDF</h2>
+                    <p class="text-slate-500 text-sm mt-1">Đánh giá quá trình rèn luyện để ngày một hoàn thiện bản thân.</p>
+                </div>
+                <button onclick="exportReport()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-md hover:from-blue-700 hover:to-indigo-700 transition flex items-center gap-2 shrink-0">
+                    <i data-lucide="download" class="w-4 h-4"></i> Tải báo cáo PDF / In
+                </button>
+            </div>
+
+            <div id="report-view" class="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200 shadow-md space-y-8">
+                <div class="border-b border-slate-200 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-blue-600 p-2.5 rounded-xl text-white">
+                            <i data-lucide="brain" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-lg text-slate-900">Study Balance - Báo Cáo Hiệu Suất Tự Học</h3>
+                            <p class="text-xs text-slate-500">Người thực hiện: Sinh viên Tự Giác | Công nghệ phân tích học tập thông minh</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-slate-400 font-bold uppercase">Ngày tổng hợp</p>
+                        <p id="report-date" class="text-sm font-bold text-slate-800"></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
